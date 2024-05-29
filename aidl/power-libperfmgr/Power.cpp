@@ -127,6 +127,9 @@ ndk::ScopedAStatus Power::setMode(Mode type, bool enabled) {
             if (enabled) {
                 endAllHints();
                 HintManager::GetInstance()->DoHint("LOW_POWER");
+#ifdef BATTERY_SAVER_NODE
+                ::android::base::WriteStringToFile(enabled ? "Y" : "N", BATTERY_SAVER_NODE, true);
+#endif
             } else {
                 HintManager::GetInstance()->EndHint("LOW_POWER");
             }

@@ -54,6 +54,10 @@ ifneq ($(TARGET_TAP_TO_WAKE_NODE),)
     LOCAL_CFLAGS += -DTAP_TO_WAKE_NODE=\"$(TARGET_TAP_TO_WAKE_NODE)\"
 endif
 
+ifneq ($(TARGET_BATTERY_SAVER_NODE),)
+    LOCAL_CFLAGS += -DBATTERY_SAVER_NODE=\"$(TARGET_BATTERY_SAVER_NODE)\"
+endif
+
 LOCAL_MODULE := android.hardware.power-service.xiaomi-libperfmgr
 LOCAL_INIT_RC := android.hardware.power-service.xiaomi-libperfmgr.rc
 LOCAL_MODULE_TAGS := optional
