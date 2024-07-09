@@ -36,24 +36,57 @@ using aidl::google::hardware::power::impl::pixel::PowerSessionManager;
 using ::android::perfmgr::HintManager;
 
 constexpr std::string_view kPowerHalInitProp("vendor.powerhal.init");
+#ifdef USE_POWER_PLANS
+constexpr std::string_view kPowerPlanProp("vendor.powerhal.profile");
+constexpr std::string_view kConfigDefaultFileName("default.json");
+constexpr std::string_view kConfigPowerSave("powersave.json");
+constexpr std::string_view kConfigBalanced("balanced.json");
+constexpr std::string_view kConfigPerformance("performance.json");
+#else
+constexpr std::string_view kConfigProperty("vendor.powerhal.config");
+constexpr std::string_view kConfigDefaultFileName("powerhint.json");
+#endif
 
 int main() {
+    std::string config_path = "/vendor/etc/";
+#ifdef USE_POWER_PLANS
+    std::string PowerPlan = android::base::GetProperty(kPowerPlanProp.data(), "");
+    if (PowerPlan.empty()) {
+        LOG(WARNING) << "No power plan is set, using default config";
+        config_path.append(kConfigDefaultFileName.data());
+    } else {
+        if (PowerPlan == "powersave") {
+            config_path.append(kConfigPowerSave.data());
+        } else if (PowerPlan == "balanced") {
+            config_path.append(kConfigBalanced.data());
+        } else if (PowerPlan == "performance") {
+            config_path.append(kConfigPerformance.data());
+        } else {
+            LOG(WARNING) << "Unknown power plan: " << PowerPlan << ", using default config";
+            config_path.append(kConfigDefaultFileName.data());
+        }
+    }
+#else
+    config_path.append(
+            android::base::GetProperty(kConfigProperty.data(), kConfigDefaultFileName.data()));
+#endif
+
     // Parse config but do not start the looper
-    std::shared_ptr<HintManager> hm = HintManager::GetInstance();
+    std::shared_ptr<HintManager> hm = HintManager::GetFromJSON(config_path, false);
     if (!hm) {
-        LOG(FATAL) << "HintManager Init failed";
+        LOG(FATAL) << "Invalid config: " << config_path;
     }
 
     // single thread
     ABinderProcess_setThreadPoolMaxThreadCount(0);
 
     // core service
-    std::shared_ptr<Power> pw = ndk::SharedRefBase::make<Power>();
+    std::shared_ptr<Power> pw = ndk::SharedRefBase::make<Power>(hm);
     ndk::SpAIBinder pwBinder = pw->asBinder();
     AIBinder_setMinSchedulerPolicy(pwBinder.get(), SCHED_NORMAL, -20);
 
     // extension service
-    std::shared_ptr<PowerExt> pwExt = ndk::SharedRefBase::make<PowerExt>();
+    std::shared_ptr<PowerExt> pwExt = ndk::SharedRefBase::make<PowerExt>(hm);
     auto pwExtBinder = pwExt->asBinder();
     AIBinder_setMinSchedulerPolicy(pwExtBinder.get(), SCHED_NORMAL, -20);
 
@@ -63,7 +96,7 @@ int main() {
     const std::string instance = std::string() + Power::descriptor + "/default";
     binder_status_t status = AServiceManager_addService(pw->asBinder().get(), instance.c_str());
     CHECK(status == STATUS_OK);
-    LOG(INFO) << "Xiaomi Power HAL AIDL Service with Extension is started.";
+    LOG(INFO) << "Xiaomi Power HAL AIDL Service with Extension started.";
 
     if (HintManager::GetInstance()->GetAdpfProfile()) {
         PowerHintMonitor::getInstance()->start();
@@ -71,7 +104,7 @@ int main() {
 
     std::thread initThread([&]() {
         ::android::base::WaitForProperty(kPowerHalInitProp.data(), "1");
-        HintManager::GetInstance()->Start();
+        hm->Start();
     });
     initThread.detach();
 

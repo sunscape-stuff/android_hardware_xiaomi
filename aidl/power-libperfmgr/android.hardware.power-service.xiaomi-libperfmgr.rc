@@ -30,3 +30,11 @@ on property:ro.debuggable=1 && property:vendor.powerhal.config.debug=*
 on property:persist.vendor.powerhal.config.debug=*
     setprop vendor.powerhal.config.debug ${persist.vendor.powerhal.config.debug}
 
+on property:vendor.powerhal.profile=*
+    setprop vendor.powerhal.config ${vendor.powerhal.profile}.json
+    restart vendor.power-hal-aidl
+
+on property:vendor.powerhal.restart=1
+    restart vendor.power-hal-aidl
+    setprop vendor.powerhal.restart 0
+

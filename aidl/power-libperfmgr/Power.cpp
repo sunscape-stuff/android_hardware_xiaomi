@@ -57,7 +57,7 @@ static const std::vector<Mode> kAlwaysAllowedModes = {
     Mode::DISPLAY_INACTIVE,
 };
 
-Power::Power()
+Power::Power(std::shared_ptr<HintManager> hm)
     : mInteractionHandler(nullptr),
       mSustainedPerfModeOn(false),
       mBatterySaverOn(false) {

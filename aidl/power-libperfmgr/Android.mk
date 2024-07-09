@@ -58,6 +58,10 @@ ifneq ($(TARGET_BATTERY_SAVER_NODE),)
     LOCAL_CFLAGS += -DBATTERY_SAVER_NODE=\"$(TARGET_BATTERY_SAVER_NODE)\"
 endif
 
+ifeq ($(TARGET_USE_POWER_PLANS),true)
+    LOCAL_CFLAGS += -DUSE_POWER_PLANS=true
+endif
+
 LOCAL_MODULE := android.hardware.power-service.xiaomi-libperfmgr
 LOCAL_INIT_RC := android.hardware.power-service.xiaomi-libperfmgr.rc
 LOCAL_MODULE_TAGS := optional
